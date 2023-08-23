@@ -1,178 +1,116 @@
 # Relatória Estrutura de Dados - Simulador de Autômatos
 
-- ### Importação dos Módulos: As primeiras linhas importam os módulos necessários para o funcionamento do código: json, csv, sys e time.
+- ### Importando as bibliotecas necessárias:
 ~~~
-Importação dos módulos necessários
 import json
-import csv
-import sys
 import time
+import os
+~~~~
+Importa as bibliotecas necessárias para lidar com JSON, medir o tempo e realizar operações no sistema.
 
- Definição de uma função para carregar os dados do autômato a partir de um arquivo JSON
-def carregar_automato(caminho_arquivo):
-    # Abertura do arquivo no modo de leitura ('r') usando o gerenciador de contexto 'with'
-    with open(caminho_arquivo, 'r') as arquivo:
-        # A função json.load() é usada para carregar os dados do arquivo JSON no formato de dicionário
-        dados_automato = json.load(arquivo)
-~~~
-No geral a função acima, é responsável por carregar os dados do autômato de um arquivo JSON, que são usados posteriormente no restante do código para executar as operações necessárias, como a conversão de AFND para AFD e o processamento dos casos de teste.
 
-- ### Essa função é responsável por carregar os casos de teste a partir de um arquivo CSV, criando uma lista de listas onde cada sublista representa um caso de teste com seus valores correspondentes. Esses casos de teste serão usados posteriormente para processamento no código.
+- ### Definindo o diretório:
 ~~~
-# Definição de uma função para carregar casos de teste a partir de um arquivo CSV
-def carregar_casos_teste(caminho_arquivo):
-    # Criação de uma lista vazia para armazenar os casos de teste
-    casos_teste = []
-    
-    # Abertura do arquivo no modo de leitura ('r') usando o gerenciador de contexto 'with'
-    with open(caminho_arquivo, 'r') as arquivo:
-        # O módulo csv é usado para criar um objeto leitor (csv.reader) que lê linhas do arquivo CSV
-        leitor = csv.reader(arquivo)
+  diretorio = 'C://Users//menega//Documents//TrabalhoTC/'
+~~~
+Define o diretório onde os arquivos serão criados.
+
+- ### Verificando e criando o diretório:
+~~~
+if not os.path.exists(diretorio):
+    os.makedirs(diretorio)
+    print(f"Diretório '{diretorio}' criado com sucesso.")
+~~~
+Verifica se o diretório existe e, caso não exista, cria o diretório e exibe uma mensagem.
+
+- ### Definindo o caminho completo do arquivo de resultado:
+~~~
+caminho_arquivo = os.path.join(diretorio, 'resultado.txt')
+~~~
+Combina o diretório e o nome do arquivo para obter o caminho completo do arquivo de resultado.
+
+- ### Função para carregar definições de autômato a partir de um arquivo JSON:
+~~~
+def carregar_definicoes_automato(transition):
+    if not os.path.exists(transition):
+        print(f"O arquivo '{transition}' não foi encontrado.")
+        return None
+
+    try:
+        with open(transition, 'r') as transition_file:
+            automato_definicoes = json.load(transition_file)
+            return automato_definicoes
+    except json.JSONDecodeError:
+        print(f"Erro ao decodificar o arquivo '{transition}'. Verifique se o arquivo está em formato JSON válido.")
         
-        # Loop for que percorre cada linha no arquivo CSV
-        for linha in leitor:
-            # Cada linha lida é uma lista de strings (campos do CSV)
-            # Essa lista de strings (linha) é adicionada à lista de casos_teste
-            casos_teste.append(linha)
-    
-    # Retorna a lista de casos_teste, onde cada caso é representado como uma lista de strings
-    return casos_teste
 ~~~
+Verifica se o arquivo de definições existe. Se sim, carrega as definições de autômato a partir do arquivo. Se não, exibe mensagens de erro.
 
-- ### No restante do código, essas estruturas serão usadas para converter o autômato AFND em um autômato AFD, aplicando o algoritmo de conversão por subconjunto.
+- ### Definindo o nome do arquivo de definições:
 ~~~
-# Definição de uma função para converter um AFND em um AFD
-def converter_afnd_para_afd(dados_afnd):
-    # Extração dos dados do autômato AFND
-    estados_afnd = dados_afnd['estados']
-    alfabeto_afnd = dados_afnd['alfabeto']
-    transicoes_afnd = dados_afnd['transicoes']
-    estado_inicial_afnd = dados_afnd['estado_inicial']
-    estados_aceitacao_afnd = dados_afnd['estados_aceitacao']
-
-    # Inicialização de estruturas para o autômato AFD
-    estados_afd = []  # Lista de conjuntos de estados do AFD
-    transicoes_afd = {}  # Dicionário de transições do AFD
-    fila_novos_estados = []  # Fila para processar novos estados do AFD
+nome_arquivo = 'transition.json'
 ~~~
+Define o nome do arquivo onde as definições do autômato serão armazenadas.
 
-- ### No final deste processo, os dados do autômato AFD serão armazenados nas estruturas estados_afd, transicoes_afd e estados_aceitacao_afd, que são usadas posteriormente para o processamento dos casos de teste e a escrita dos resultados.
+- ### Verificando e criando o arquivo de definições se ele não existir:
 ~~~
-# Criar o conjunto inicial de estados do AFD com o estado inicial do AFND
-    estado_inicial_afd = frozenset([estado_inicial_afnd])
-    estados_afd.append(estado_inicial_afd)
-    fila_novos_estados.append(estado_inicial_afd)
-
-    # Enquanto houver novos estados a serem processados na fila
-    while fila_novos_estados:
-        # Retira o próximo estado da fila para processamento
-        estado_atual_afd = fila_novos_estados.pop(0)
-
-        # Inicializa as transições para o estado atual do AFD
-        transicoes_afd[estado_atual_afd] = {}
-
-        # Itera por cada símbolo do alfabeto do AFND
-        for caractere in alfabeto_afnd:
-            novo_estado_afd = set()
-
-            # Itera por cada estado do conjunto atual no AFD
-            for estado_afnd in estado_atual_afd:
-                # Verifica se há uma transição no AFND para o caractere atual
-                if caractere in transicoes_afnd[estado_afnd]:
-                    # Atualiza o novo conjunto de estados do AFD
-                    novo_estado_afd.update(transicoes_afnd[estado_afnd][caractere])
-
-            # Cria um frozenset a partir do novo conjunto de estados
-            novo_estado_afd = frozenset(novo_estado_afd)
-
-            # Se o novo estado não é vazio e não foi adicionado anteriormente
-            if novo_estado_afd and novo_estado_afd not in estados_afd:
-                estados_afd.append(novo_estado_afd)
-                fila_novos_estados.append(novo_estado_afd)
-
-            # Adiciona a transição ao dicionário de transições do AFD
-            transicoes_afd[estado_atual_afd][caractere] = novo_estado_afd
-
-    # Calcula os estados de aceitação do AFD
-    estados_aceitacao_afd = [estado_afd for estado_afd in estados_afd if estado_afd.intersection(estados_aceitacao_afnd)]
-~~~
-
-- ### Essa parte do código é responsável por consolidar os resultados da conversão do AFND para AFD em um dicionário dados_afd, que é retornado como saída da função. Os dados contidos nesse dicionário representam o autômato AFD resultante e são usados mais tarde para o processamento dos casos de teste e a escrita dos resultados.
-~~~
-# Montar os dados do AFD resultante
-    dados_afd = {
-        'estados': estados_afd,
-        'alfabeto': alfabeto_afnd,
-        'transicoes': transicoes_afd,
-        'estado_inicial': estado_inicial_afd,
-        'estados_aceitacao': estados_aceitacao_afd
+if not os.path.exists(nome_arquivo):
+    entrada_json = {
+        # ... (definições de estado inicial, estados finais e transições)
     }
 
-    return dados_afd
+    with open(nome_arquivo, 'w') as transition_file:
+        json.dump(entrada_json, transition_file, indent=4)
+        print(f"Arquivo '{nome_arquivo}' criado com sucesso com a entrada JSON.")
+else:
+    print(f"O arquivo '{nome_arquivo}' já existe. Você pode editar manualmente sua entrada JSON nele.
 ~~~
+Verifica se o arquivo de definições já existe. Se não existir, cria o arquivo e insere as definições em formato JSON.
 
-- ### Essa função é responsável por processar os casos de teste no autômato fornecido e comparar os resultados obtidos com os resultados esperados, armazenando-os em uma lista de resultados. Essa lista de resultados será usada posteriormente para escrever os resultados em um arquivo de saída.
+- ### Carregando definições de autômato e exibindo informações:
 ~~~
-# Definição de uma função para processar os casos de teste no autômato fornecido
-def processar_testes(automato, casos_teste):
+automato_definicoes = carregar_definicoes_automato(nome_arquivo)
+if automato_definicoes is not None:
+    # ... (processamento das definições e exibição)
+~~~
+Chama a função carregar_definicoes_automato para carregar as definições de autômato e, se carregadas com sucesso, exibe informações sobre o autômato.
+
+- ### Processando as entradas do autômato:
+~~~
+def processar_entradas(automato, entradas):
     resultados = []
-    for caso in casos_teste:
-        entrada, resultado_esperado = caso
-        estado_atual = automato['estado_inicial']
-        for caractere in entrada:
-            if caractere in automato['alfabeto']:
-                estado_atual = automato['transicoes'][estado_atual][caractere]
-
-        resultado = 'aceita' if estado_atual in automato['estados_aceitacao'] else 'rejeita'
-        resultados.append([entrada, resultado_esperado, resultado])
+    for entrada in entradas:
+        # ... (processamento de cada entrada)
     return resultados
 ~~~
+Define uma função que processa as entradas do autômato, executa as transições e calcula os resultados.
 
-- ### Essa parte do código trata da função para escrever os resultados em um arquivo de saída e inclui um trecho condicional que verifica se o script está sendo executado diretamente e se os argumentos da linha de comando estão corretos. Se não estiverem, uma mensagem de uso é exibida, e o script é encerrado com um código de saída de 1 para indicar uma saída anormal.
+- ### Carregando entradas do arquivo CSV e processando:
 ~~~
-# Definição de uma função para escrever os resultados em um arquivo de saída
-def escrever_resultados(caminho_arquivo, resultados):
-    with open(caminho_arquivo, 'w') as arquivo:
-        for resultado in resultados:
-            arquivo.write(';'.join(map(str, resultado)) + '\n')
+entradas = []
+with open('entrada.csv', 'r') as entradas_file:
+    linhas = entradas_file.read().strip().split('\n')
 
-# Trecho condicional que é executado quando este script é executado diretamente
-if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("Uso: python ferramenta.py arquivo_do_automato.aut arquivo_de_testes.in arquivo_de_saida.out")
-        sys.exit(1)
+for linha in linhas:
+    simbolos = linha.strip().split(',')
+    entradas.append(simbolos)
+
+resultado = processar_entradas(automato, entradas)
 ~~~
+Lê as entradas do arquivo CSV, as processa usando a função processar_entradas e armazena os resultados.
 
-- ### Essa parte do código realiza a sequência completa de operações, desde a obtenção dos nomes dos arquivos de entrada e saída até o carregamento dos dados, conversão do autômato AFND para AFD, processamento dos casos de teste, gravação dos resultados e exibição de uma mensagem de conclusão.
+- ### Criando um arquivo de saída com os resultados:
 ~~~
-# Obter os nomes dos arquivos a partir dos argumentos da linha de comando
-    arquivo_automato = sys.argv[1]
-    arquivo_casos_teste = sys.argv[2]
-    arquivo_saida = sys.argv[3]
+resultado_txt = '\n'.join([f"{r['entrada']}, {r['resultadoEsperado']}, {r['resultadoObtido']}, {r['tempoExecucao']}" for r in resultado])
 
-    # Carregar os dados do autômato e os casos de teste
-    dados_afnd = carregar_automato(arquivo_automato)
-    casos_teste = carregar_casos_teste(arquivo_casos_teste)
-
-    # Converter AFND para AFD
-    dados_afd = converter_afnd_para_afd(dados_afnd)
-
-    # Processar os casos de teste no autômato convertido
-    resultados = processar_testes(dados_afd, casos_teste)
-
-    # Escrever os resultados no arquivo de saída
-    escrever_resultados(arquivo_saida, resultados)
-
-    print("Processamento concluído. Resultados gravados em", arquivo_saida)
+with open(caminho_arquivo, 'w') as resultado_file:
+    resultado_file.write(resultado_txt)
 ~~~
+Formata os resultados e escreve-os em um arquivo de saída.
 
-
-
-
-
-
-
-
-
-
+- ### Exibindo mensagem de conclusão:
+~~~
+print(f"Arquivo '{caminho_arquivo}' criado com sucesso.")
+~~~
+Exibe uma mensagem indicando que o arquivo de resultados foi criado com sucesso.
 
